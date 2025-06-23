@@ -12,127 +12,122 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class MySqlUserDao extends MySqlDaoBase implements UserDao
-{
+public class MySqlUserDao extends MySqlDaoBase implements UserDao {
     @Autowired
-    public MySqlUserDao(DataSource dataSource)
-    {
+    public MySqlUserDao(DataSource dataSource) {
         super(dataSource);
     }
 
 
     @Override
-    public User create(User newUser)
-    {
-        String sql = "INSERT INTO users (username, hashed_password, role) VALUES (?, ?, ?)";
+    public User create(User newUser) {
+        String query = "INSERT INTO users (username, hashed_password, role) VALUES (?, ?, ?)";
         String hashedPassword = new BCryptPasswordEncoder().encode(newUser.getPassword());
 
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, newUser.getUsername());
-            ps.setString(2, hashedPassword);
-            ps.setString(3, newUser.getRole());
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query,
+                        PreparedStatement.RETURN_GENERATED_KEYS);
+        ) {
+            preparedStatement.setString(1, newUser.getUsername());
+            preparedStatement.setString(2, hashedPassword);
+            preparedStatement.setString(3, newUser.getRole());
 
-            ps.executeUpdate();
+            int rowsAffected= preparedStatement.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("New User Added Successfully");
+                ResultSet resultSet = preparedStatement.getGeneratedKeys();
 
-            User user = getByUserName(newUser.getUsername());
-            user.setPassword("");
+                if (resultSet.next()) {//FIXME
+                    int generatedUserId = resultSet.getInt(1);
+                    User user = getUserById(generatedUserId);
+                    if(user != null){
+                        user.setPassword("");
+                    }
+                    return user;
+                } else {
+                    System.out.println("No User Created...");
+                }
+            }
 
-            return user;
-
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
+        return null;
     }
 
     @Override
-    public List<User> getAll()
-    {
+    public List<User> getAll() {
         List<User> users = new ArrayList<>();
-
-        String sql = "SELECT * FROM users";
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-
-            ResultSet row = statement.executeQuery();
-
-            while (row.next())
-            {
-                User user = mapRow(row);
-                users.add(user);
+        String query = "SELECT * FROM users";
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
+                ResultSet resultSet = preparedStatement.executeQuery();
+        ) {
+            if (resultSet.next()) {
+                do {
+                    User user = mapRow(resultSet);
+                    users.add(user);
+                } while (resultSet.next());
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
-
         return users;
     }
 
     @Override
-    public User getUserById(int id)
-    {
+    public User getUserById(int id) {
         String sql = "SELECT * FROM users WHERE user_id = ?";
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, id);
-
-            ResultSet row = statement.executeQuery();
-
-            if(row.next())
-            {
-                User user = mapRow(row);
-                return user;
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(sql)
+        ) {
+            preparedStatement.setInt(1, id);
+            try (
+                    ResultSet resultSet = preparedStatement.executeQuery();
+            ) {
+                if (resultSet.next()) {
+                    return mapRow(resultSet);
+                } else {
+                    System.out.println("NO User Found By ID");
+                }
             }
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return null;
     }
 
     @Override
-    public User getByUserName(String username)
-    {
-        String sql = "SELECT * " +
-                " FROM users " +
-                " WHERE username = ?";
-
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, username);
-
-            ResultSet row = statement.executeQuery();
-            if(row.next())
-            {
-
-                User user = mapRow(row);
-                return user;
+    public User getByUserName(String username) {
+        String query = "SELECT * FROM users WHERE username = ?";
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
+        ) {
+            preparedStatement.setString(1, username);
+            try (
+                    ResultSet resultSet = preparedStatement.executeQuery();
+            ) {
+                if (resultSet.next()) {
+                    return mapRow(resultSet);
+                } else {
+                    System.out.println("No User Found By Username");
+                }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        catch (SQLException e)
-        {
-            System.out.println(e);
-        }
-
         return null;
     }
 
     @Override
-    public int getIdByUsername(String username)
-    {
+    public int getIdByUsername(String username) {
         User user = getByUserName(username);
 
-        if(user != null)
-        {
+        if (user != null) {
             return user.getId();
         }
 
@@ -140,19 +135,17 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao
     }
 
     @Override
-    public boolean exists(String username)
-    {
+    public boolean exists(String username) {
         User user = getByUserName(username);
         return user != null;
     }
 
-    private User mapRow(ResultSet row) throws SQLException
-    {
+    private User mapRow(ResultSet row) throws SQLException {
         int userId = row.getInt("user_id");
         String username = row.getString("username");
         String hashedPassword = row.getString("hashed_password");
         String role = row.getString("role");
 
-        return new User(userId, username,hashedPassword, role);
+        return new User(userId, username, hashedPassword, role);
     }
 }

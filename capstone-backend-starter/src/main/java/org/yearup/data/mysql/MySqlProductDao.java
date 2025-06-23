@@ -11,215 +11,219 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class MySqlProductDao extends MySqlDaoBase implements ProductDao
-{
-    public MySqlProductDao(DataSource dataSource)
-    {
+public class MySqlProductDao extends MySqlDaoBase implements ProductDao {
+    public MySqlProductDao(DataSource dataSource) {
         super(dataSource);
     }
 
     @Override
-    public List<Product> search(Integer categoryId, BigDecimal minPrice, BigDecimal maxPrice, String color)
-    {
+    public List<Product> search(Integer categoryId, BigDecimal minPrice, BigDecimal maxPrice, String color) {
         List<Product> products = new ArrayList<>();
+        //FIXME changed sql to query; fixed the sql string; fixed the preparedStatement
+        String query = "SELECT * FROM products WHERE (? =-1 or category_id = ?) " +
+                "   AND (? = -1 OR price >= ?) AND (? = -1 OR price <= ?) " +
+                "   AND (? = '' or color = ?) ";
 
-        String sql = "SELECT * FROM products " +
-                "WHERE (category_id = ? OR ? = -1) " +
-                "   AND (price <= ? OR ? = -1) " +
-                "   AND (color = ? OR ? = '') ";
+//        categoryId = categoryId == null ? -1 : categoryId;
+//        minPrice = minPrice == null ? new BigDecimal("-1") : minPrice;
+//        maxPrice = maxPrice == null ? new BigDecimal("-1") : maxPrice;
+//        color = color == null ? "" : color;
 
-        categoryId = categoryId == null ? -1 : categoryId;
-        minPrice = minPrice == null ? new BigDecimal("-1") : minPrice;
-        maxPrice = maxPrice == null ? new BigDecimal("-1") : maxPrice;
-        color = color == null ? "" : color;
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
+        ) {
+            preparedStatement.setInt(1, categoryId == null ? -1 : categoryId);
+            preparedStatement.setInt(2, categoryId == null ? -1 : categoryId);
 
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, categoryId);
-            statement.setInt(2, categoryId);
-            statement.setBigDecimal(3, minPrice);
-            statement.setBigDecimal(4, minPrice);
-            statement.setString(5, color);
-            statement.setString(6, color);
+            preparedStatement.setBigDecimal(3, minPrice == null ? new BigDecimal("-1") : minPrice);
+            preparedStatement.setBigDecimal(4, minPrice == null ? new BigDecimal("-1") : minPrice);
 
-            ResultSet row = statement.executeQuery();
+            preparedStatement.setBigDecimal(5, maxPrice == null ? new BigDecimal(-1) : maxPrice);
+            preparedStatement.setBigDecimal(6, maxPrice == null ? new BigDecimal(-1) : maxPrice);
 
-            while (row.next())
-            {
-                Product product = mapRow(row);
-                products.add(product);
-            }
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
-
-        return products;
-    }
-
-    @Override
-    public List<Product> listByCategoryId(int categoryId)
-    {
-        List<Product> products = new ArrayList<>();
-
-        String sql = "SELECT * FROM products " +
-                    " WHERE category_id = ? ";
-
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, categoryId);
-
-            ResultSet row = statement.executeQuery();
-
-            while (row.next())
-            {
-                Product product = mapRow(row);
-                products.add(product);
-            }
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
-
-        return products;
-    }
-
-
-    @Override
-    public Product getById(int productId)
-    {
-        String sql = "SELECT * FROM products WHERE product_id = ?";
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, productId);
-
-            ResultSet row = statement.executeQuery();
-
-            if (row.next())
-            {
-                return mapRow(row);
-            }
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
-        return null;
-    }
-
-    @Override
-    public Product create(Product product)
-    {
-
-        String sql = "INSERT INTO products(name, price, category_id, description, color, image_url, stock, featured) " +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
-
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
-            statement.setString(1, product.getName());
-            statement.setBigDecimal(2, product.getPrice());
-            statement.setInt(3, product.getCategoryId());
-            statement.setString(4, product.getDescription());
-            statement.setString(5, product.getColor());
-            statement.setString(6, product.getImageUrl());
-            statement.setInt(7, product.getStock());
-            statement.setBoolean(8, product.isFeatured());
-
-            int rowsAffected = statement.executeUpdate();
-
-            if (rowsAffected > 0) {
-                // Retrieve the generated keys
-                ResultSet generatedKeys = statement.getGeneratedKeys();
-
-                if (generatedKeys.next()) {
-                    // Retrieve the auto-incremented ID
-                    int orderId = generatedKeys.getInt(1);
-
-                    // get the newly inserted category
-                    return getById(orderId);
+            preparedStatement.setString(7, color == null ? "" : color);
+            preparedStatement.setString(8, color == null ? "" : color);
+            try (
+                    ResultSet resultSet = preparedStatement.executeQuery();
+            ) {
+                if (resultSet.next()) {
+                    do {
+                        Product product = mapRow(resultSet);
+                        products.add(product);
+                    } while (resultSet.next());
                 }
             }
+//            while (row.next()) {
+//                Product product = mapRow(row);
+//                products.add(product);
+//            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
+        return products;
+    }
+
+    @Override
+    public List<Product> listByCategoryId(int categoryId) {
+        List<Product> products = new ArrayList<>();
+
+        String query = "SELECT * FROM products " +
+                " WHERE category_id = ? ";
+
+        try (
+                Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(query);
+        ) {
+            statement.setInt(1, categoryId);
+            try (
+                    ResultSet resultSet = statement.executeQuery();
+            ) {
+                if (resultSet.next()) {
+                    do {
+                        Product product = mapRow(resultSet);
+                        products.add(product);
+                    } while (resultSet.next());
+                }
+            }
+//            while (row.next()) {
+//                Product product = mapRow(row);
+//                products.add(product);
+//            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return products;
+    }
+
+
+    @Override
+    public Product getById(int productId) {
+        String query = "SELECT * FROM products WHERE product_id = ?";
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
+        ) {
+            preparedStatement.setInt(1, productId);
+            try (
+                    ResultSet resultSet = preparedStatement.executeQuery();
+            ) {
+                if (resultSet.next()) {
+                    return mapRow(resultSet);
+                } else {
+                    System.out.println("No Product Found");
+                }
+            }
+//            if (row.next()) {
+//                return mapRow(row);
+//            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return null;
     }
 
     @Override
-    public void update(int productId, Product product)
-    {
-        String sql = "UPDATE products" +
-                " SET name = ? " +
-                "   , price = ? " +
-                "   , category_id = ? " +
-                "   , description = ? " +
-                "   , color = ? " +
-                "   , image_url = ? " +
-                "   , stock = ? " +
-                "   , featured = ? " +
-                " WHERE product_id = ?;";
+    public Product create(Product product) {
 
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, product.getName());
-            statement.setBigDecimal(2, product.getPrice());
-            statement.setInt(3, product.getCategoryId());
-            statement.setString(4, product.getDescription());
-            statement.setString(5, product.getColor());
-            statement.setString(6, product.getImageUrl());
-            statement.setInt(7, product.getStock());
-            statement.setBoolean(8, product.isFeatured());
-            statement.setInt(9, productId);
+        String query = "INSERT INTO products(name, price, category_id, description, color, image_url, stock, featured)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query,
+                        PreparedStatement.RETURN_GENERATED_KEYS);
+        ) {
+            preparedStatement.setString(1, product.getName());
+            preparedStatement.setBigDecimal(2, product.getPrice());
+            preparedStatement.setInt(3, product.getCategoryId());
+            preparedStatement.setString(4, product.getDescription());
+            preparedStatement.setString(5, product.getColor());
+            preparedStatement.setString(6, product.getImageUrl());
+            preparedStatement.setInt(7, product.getStock());
+            preparedStatement.setBoolean(8, product.isFeatured());
 
-            statement.executeUpdate();
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("New Product Added Successfully");
+                // Retrieve the generated keys
+                ResultSet resultSet = preparedStatement.getGeneratedKeys();
+
+                if (resultSet.next()) {
+                    // Retrieve the auto-incremented ID
+                    int generatedProductId = resultSet.getInt(1);
+                    // get the newly inserted category
+                    return getById(generatedProductId);
+                } else {
+                    System.out.println("No Product Created...");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
+        return null;
+    }
+
+    @Override
+    public void update(int productId, Product product) {
+        String query = "UPDATE products SET name = ?, price = ?, category_id = ?, description = ?, color = ?, " +
+                "image_url = ?, stock = ?, featured = ? WHERE product_id = ?;";
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
+        ) {
+            preparedStatement.setString(1, product.getName());
+            preparedStatement.setBigDecimal(2, product.getPrice());
+            preparedStatement.setInt(3, product.getCategoryId());
+            preparedStatement.setString(4, product.getDescription());
+            preparedStatement.setString(5, product.getColor());
+            preparedStatement.setString(6, product.getImageUrl());
+            preparedStatement.setInt(7, product.getStock());
+            preparedStatement.setBoolean(8, product.isFeatured());
+            preparedStatement.setInt(9, productId);
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 1) {
+                System.out.println("Product Updated Successfully!");
+            } else {
+                System.out.println("Product Update Failed...");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     @Override
-    public void delete(int productId)
-    {
+    public void delete(int productId) {
+        String query = "DELETE FROM products WHERE product_id = ?;";
+        try (
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
+        ) {
+            preparedStatement.setInt(1, productId);
 
-        String sql = "DELETE FROM products " +
-                " WHERE product_id = ?;";
-
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, productId);
-
-            statement.executeUpdate();
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 1) {
+                System.out.println("Product Deleted Successfully!");
+            } else {
+                System.out.println("Product Deletion Failed...");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    protected static Product mapRow(ResultSet row) throws SQLException
-    {
-        int productId = row.getInt("product_id");
-        String name = row.getString("name");
-        BigDecimal price = row.getBigDecimal("price");
-        int categoryId = row.getInt("category_id");
-        String description = row.getString("description");
-        String color = row.getString("color");
-        int stock = row.getInt("stock");
-        boolean isFeatured = row.getBoolean("featured");
-        String imageUrl = row.getString("image_url");
+    protected static Product mapRow(ResultSet resultSet) throws SQLException {
+        int productId = resultSet.getInt("product_id");
+        String name = resultSet.getString("name");
+        BigDecimal price = resultSet.getBigDecimal("price");
+        int categoryId = resultSet.getInt("category_id");
+        String description = resultSet.getString("description");
+        String color = resultSet.getString("color");
+        String imageUrl = resultSet.getString("image_url");
+        int stock = resultSet.getInt("stock");
+        boolean isFeatured = resultSet.getBoolean("featured");
 
-        return new Product(productId, name, price, categoryId, description, color, stock, isFeatured, imageUrl);
+        return new Product(productId, name, price, categoryId, description, color, imageUrl, stock, isFeatured);
     }
 }
