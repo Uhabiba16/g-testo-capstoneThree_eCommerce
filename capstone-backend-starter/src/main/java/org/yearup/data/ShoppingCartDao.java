@@ -1,6 +1,5 @@
 package org.yearup.data;
 
-import org.yearup.models.Product;
 import org.yearup.models.ShoppingCart;
 import org.yearup.models.ShoppingCartItem;
 
@@ -10,8 +9,8 @@ public interface ShoppingCartDao {
 
     ShoppingCart getByUserId(int userId);
     ShoppingCart addItemToCart(int userId, int productId);
-    void updateCart(int productid,ShoppingCart cart);
+    void updateCart(int userId, int productid, ShoppingCartItem cart);
     void deleteCartByUser(int userId);
 
-    //TODO add additional method signatures here
+    // add additional method signatures here Done
 }

@@ -85,12 +85,50 @@ public class MySqlCartDao extends MySqlDaoBase implements ShoppingCartDao {
     }
 
     @Override
-    public void updateCart(int productid, ShoppingCart cart) {
+    public void updateCart(int userId, int productid, ShoppingCartItem cart) {
+
+        String query= "update shopping_cart set quantity=? where user_id=? and product_id=?;";
+
+        try(
+                Connection connection=getConnection();
+                PreparedStatement preparedStatement= connection.prepareStatement(query)
+                ){
+            preparedStatement.setInt(1,cart.getQuantity());
+            preparedStatement.setInt(2,userId);
+            preparedStatement.setInt(3,productid);
+
+            int rowAffected= preparedStatement.executeUpdate();
+            if(rowAffected==1){
+                System.out.println("Quantity Updated Successfully In Cart");
+            }else{
+                System.out.println("Quantity Update Failed...");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
 
     @Override
     public void deleteCartByUser(int userId) {
+
+        String query="delete from shopping_cart where user_id=?;";
+
+        try(
+                Connection connection=getConnection();
+                PreparedStatement preparedStatement= connection.prepareStatement(query)
+                ){
+            preparedStatement.setInt(1,userId);
+
+            int rowAffected= preparedStatement.executeUpdate();
+            if(rowAffected==1){
+                System.out.println("Cart Emptied successfully");
+            }else {
+                System.out.println("Cart Emptying Failed...");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
 }
