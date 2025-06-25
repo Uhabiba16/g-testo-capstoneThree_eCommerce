@@ -19,7 +19,7 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao {
     @Override
     public List<Product> search(Integer categoryId, BigDecimal minPrice, BigDecimal maxPrice, String color) {
         List<Product> products = new ArrayList<>();
-        //FIXME changed sql to query; fixed the sql string; fixed the preparedStatement
+        //FIXed changed sql to query; fixed the sql string; fixed the preparedStatement
         String query = "SELECT * FROM products WHERE (? =-1 or category_id = ?) " +
                 "   AND (? = -1 OR price >= ?) AND (? = -1 OR price <= ?) " +
                 "   AND (? = '' or color = ?) ";
@@ -68,16 +68,15 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao {
     public List<Product> listByCategoryId(int categoryId) {
         List<Product> products = new ArrayList<>();
 
-        String query = "SELECT * FROM products " +
-                " WHERE category_id = ? ";
+        String query = "SELECT * FROM products WHERE category_id = ? ";
 
         try (
                 Connection connection = getConnection();
-                PreparedStatement statement = connection.prepareStatement(query);
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
         ) {
-            statement.setInt(1, categoryId);
+            preparedStatement.setInt(1, categoryId);
             try (
-                    ResultSet resultSet = statement.executeQuery();
+                    ResultSet resultSet = preparedStatement.executeQuery()
             ) {
                 if (resultSet.next()) {
                     do {

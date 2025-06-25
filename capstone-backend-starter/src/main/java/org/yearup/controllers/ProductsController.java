@@ -41,10 +41,8 @@ public class ProductsController {
     public Product getById(@PathVariable int id) {
         try {
             var product = productDao.getById(id);
-
             if (product == null)
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-
             return product;
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
@@ -52,9 +50,8 @@ public class ProductsController {
     }
 
     @PostMapping()
-//    @PreAuthorize("hasRole('ROLE_ADMIN')") Todo change this back
-    @PreAuthorize("permitAll()")
-
+    @PreAuthorize("hasRole('ROLE_ADMIN')") //Todo change this back @PreAuthorize("permitAll()")
+    @ResponseStatus(HttpStatus.CREATED)
     public Product addProduct(@RequestBody Product product) {
         try {
             return productDao.create(product);
@@ -65,6 +62,7 @@ public class ProductsController {
 
     @PutMapping("{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public void updateProduct(@PathVariable int id, @RequestBody Product product) {
         try {
             productDao.update(id,product);
@@ -75,6 +73,7 @@ public class ProductsController {
 
     @DeleteMapping("{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteProduct(@PathVariable int id) {
         try {
             var product = productDao.getById(id);

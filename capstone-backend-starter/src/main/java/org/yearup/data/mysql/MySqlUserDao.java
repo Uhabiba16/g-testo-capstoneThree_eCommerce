@@ -38,18 +38,13 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao {
                 System.out.println("New User Added Successfully");
                 ResultSet resultSet = preparedStatement.getGeneratedKeys();
 
-                if (resultSet.next()) {//FIXME
+                if (resultSet.next()) {//FIXed
                     int generatedUserId = resultSet.getInt(1);
-                    User user = getUserById(generatedUserId);
-                    if(user != null){
-                        user.setPassword("");
-                    }
-                    return user;
+                    return new User(generatedUserId, newUser.getUsername(), "", newUser.getRole());
                 } else {
                     System.out.println("No User Created...");
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
