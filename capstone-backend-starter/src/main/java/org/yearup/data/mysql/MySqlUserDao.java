@@ -73,13 +73,13 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao {
     }
 
     @Override
-    public User getUserById(int id) {
-        String sql = "SELECT * FROM users WHERE user_id = ?";
+    public User getUserById(int userId) {
+        String query = "SELECT * FROM users WHERE user_id = ?";
         try (
                 Connection connection = getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(sql)
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
         ) {
-            preparedStatement.setInt(1, id);
+            preparedStatement.setInt(1, userId);
             try (
                     ResultSet resultSet = preparedStatement.executeQuery();
             ) {

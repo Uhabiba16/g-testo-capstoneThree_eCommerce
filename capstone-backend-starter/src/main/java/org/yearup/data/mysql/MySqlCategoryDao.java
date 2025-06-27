@@ -57,9 +57,10 @@ public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao {
                     ResultSet resultSet = preparedStatement.executeQuery()
             ) {
                 if (resultSet.next()) {
+                    System.out.println("Category Successfully Found By Id");
                     return mapRow(resultSet);
                 } else {
-                    System.out.println("NO Category Found");
+                    System.out.println("No Category Found");
                 }
             }
         } catch (SQLException e) {
@@ -77,7 +78,7 @@ public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao {
                 Connection connection = getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query,
                         PreparedStatement.RETURN_GENERATED_KEYS);
-        ) {
+                ) {
             preparedStatement.setString(1, category.getName());
             preparedStatement.setString(2, category.getDescription());
 

@@ -36,8 +36,8 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao {
             preparedStatement.setInt(1, categoryId == null ? -1 : categoryId);
             preparedStatement.setInt(2, categoryId == null ? -1 : categoryId);
 
-            preparedStatement.setBigDecimal(3, minPrice == null ? new BigDecimal("-1") : minPrice);
-            preparedStatement.setBigDecimal(4, minPrice == null ? new BigDecimal("-1") : minPrice);
+            preparedStatement.setBigDecimal(3, minPrice == null ? new BigDecimal(-1) : minPrice);
+            preparedStatement.setBigDecimal(4, minPrice == null ? new BigDecimal(-1) : minPrice);
 
             preparedStatement.setBigDecimal(5, maxPrice == null ? new BigDecimal(-1) : maxPrice);
             preparedStatement.setBigDecimal(6, maxPrice == null ? new BigDecimal(-1) : maxPrice);
